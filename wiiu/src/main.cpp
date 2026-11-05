@@ -9,6 +9,7 @@
 
 #include "config.hpp"
 #include "utils.hpp"
+#include "rpl.hpp"
 
 /**
     Mandatory plugin information.
@@ -37,28 +38,10 @@ int protariumState = -1; // -1 not checked yet, 0 no, 1 yes
 
 /**
  * Whether this is a Protarium setup: the environment's name contains
- * "protarium", or (like Prot-endo-Switcher) an Inkay plugin or module file
- * contains "protarium".
- * Checked once, the first time it's needed.
+ * "protarium" (e.g. "Aroma Protarium"), or an Inkay plugin or module says so
+ * inside ("Protarium Network Patcher"). Inkay files are compressed RPLs, so
+ * they are unpacked first (rpl.hpp). Checked once, the first time it's needed.
  */
-bool FileContains(const std::string &path, const std::string &needle) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f.is_open()) return false;
-    std::string carry;
-    std::vector<char> buffer(64 * 1024);
-    size_t total = 0;
-    // Stop when the title closes, and don't read more than 8 MB
-    while (f && !DiscordDirect::abortRequests && total < 8 * 1024 * 1024) {
-        f.read(buffer.data(), buffer.size());
-        total += f.gcount();
-        std::string chunk = carry + std::string(buffer.data(), f.gcount());
-        for (char &c : chunk) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
-        if (chunk.find(needle) != std::string::npos) return true;
-        carry = chunk.size() > needle.size() ? chunk.substr(chunk.size() - needle.size()) : chunk;
-    }
-    return false;
-}
-
 bool IsProtarium() {
     if (protariumState != -1) return protariumState == 1;
     protariumState = 0;
@@ -76,7 +59,8 @@ bool IsProtarium() {
             std::string name = entry.path().filename().string();
             for (char &c : name) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
             if (name.find("protarium") != std::string::npos ||
-                (name.find("inkay") != std::string::npos && FileContains(entry.path().string(), "protarium"))) {
+                (name.find("inkay") != std::string::npos && !DiscordDirect::abortRequests &&
+                 RPL::Contains(entry.path().string(), "protarium"))) {
                 protariumState = 1;
                 return true;
             }
