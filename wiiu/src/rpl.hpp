@@ -21,6 +21,7 @@
 #define STBI_NO_STDIO
 #define STBI_SUPPORT_ZLIB
 #define STBI_NO_FAILURE_STRINGS
+#define STBI_NO_THREAD_LOCALS // plugins can't use thread-local storage
 #include "stb_image.h"
 
 namespace RPL {
